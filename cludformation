@@ -1,0 +1,983 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Resources": {
+        "CloudFormationMyvpc": {
+            "Type": "AWS::EC2::VPC",
+            "Properties": {
+                "EnableDnsSupport": "true",
+                "EnableDnsHostnames": "true",
+                "CidrBlock": "10.1.0.0/16",
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "CloudFormationMyvpc"
+                    }
+                ]
+            }
+        },
+        "publicSubnet01": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "AvailabilityZone": "us-east-2a",
+                "CidrBlock": "10.1.128.0/17",
+                "MapPublicIpOnLaunch": "true",
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "publicSubnet01"
+                    }
+                ],
+                "VpcId": {
+                    "Ref": "CloudFormationMyvpc"
+                }
+            }
+        },
+        "publicSubnetForCloud02": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "AvailabilityZone": "us-east-2a",
+                "CidrBlock": "10.1.64.0/18",
+                "MapPublicIpOnLaunch": "true",
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "publicSubnetForCloud02"
+                    }
+                ],
+                "VpcId": {
+                    "Ref": "CloudFormationMyvpc"
+                }
+            }
+        },
+        "privateSubnet01": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "AvailabilityZone": "us-east-2a",
+                "CidrBlock": "10.1.32.0/19",
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "PrivateSubnet01"
+                    }
+                ],
+                "VpcId": {
+                    "Ref": "CloudFormationMyvpc"
+                }
+            }
+        },
+        "privateSubnet02": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "AvailabilityZone": "us-east-2c",
+                "CidrBlock": "10.1.16.0/20",
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "PrivateSubnet02"
+                    }
+                ],
+                "VpcId": {
+                    "Ref": "CloudFormationMyvpc"
+                }
+            }
+        },
+        "myInternetGateway": {
+            "Type": "AWS::EC2::InternetGateway",
+            "Properties": {
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "myInternetGateway"
+                    }
+                ]
+            }
+        },
+        "myPublicRouteTable": {
+            "Type": "AWS::EC2::RouteTable",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "CloudFormationMyvpc"
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "myPublicRouteTable"
+                    }
+                ]
+            }
+        },
+        "myPublicSubnetRouteTableAssociation": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "SubnetId": {
+                    "Ref": "publicSubnet01"
+                },
+                "RouteTableId": {
+                    "Ref": "myPublicRouteTable"
+                }
+            }
+        },
+        "myPublicSubnetRouteTableAssociation02": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "SubnetId": {
+                    "Ref": "publicSubnetForCloud02"
+                },
+                "RouteTableId": {
+                    "Ref": "myPublicRouteTable"
+                }
+            }
+        },
+        "GatewayToInternet": {
+            "Type": "AWS::EC2::VPCGatewayAttachment",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "CloudFormationMyvpc"
+                },
+                "InternetGatewayId": {
+                    "Ref": "myInternetGateway"
+                }
+            }
+        },
+        "myRoute": {
+            "Type": "AWS::EC2::Route",
+            "DependsOn": "GatewayToInternet",
+            "Properties": {
+                "RouteTableId": {
+                    "Ref": "myPublicRouteTable"
+                },
+                "DestinationCidrBlock": "0.0.0.0/0",
+                "GatewayId": {
+                    "Ref": "myInternetGateway"
+                }
+            }
+        },
+        "PublicSecuritygroup01": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "Public security Group",
+                "GroupName": "PublicsecurityGroup",
+                "SecurityGroupIngress": [
+                    {
+                        "FromPort": 80,
+                        "IpProtocol": "tcp",
+                        "ToPort": 80,
+                        "CidrIp": "0.0.0.0/0",
+                        "Description": "For traffic from intrnate http"
+                    },
+                    {
+                        "FromPort": 8000,
+                        "IpProtocol": "tcp",
+                        "ToPort": 8000,
+                        "CidrIp": "0.0.0.0/0",
+                        "Description": "For traffic from intrnate http"
+                    },
+                    {
+                        "FromPort": 22,
+                        "IpProtocol": "tcp",
+                        "ToPort": 22,
+                        "CidrIp": "0.0.0.0/0",
+                        "Description": "For traffic from intrnate ssh"
+                    }
+                ],
+                "VpcId": {
+                    "Ref": "CloudFormationMyvpc"
+                }
+            }
+        },
+        "PrivateSecuritygroup01": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "Privatec security Group",
+                "GroupName": "PrivatesecurityGroup",
+                "SecurityGroupIngress": [
+                    {
+                        "FromPort": 80,
+                        "IpProtocol": "tcp",
+                        "ToPort": 80,
+                        "CidrIp": "0.0.0.0/0",
+                        "Description": "For traffic from intrnate http"
+                    },
+                    {
+                        "FromPort": 8000,
+                        "IpProtocol": "tcp",
+                        "ToPort": 8000,
+                        "CidrIp": "0.0.0.0/0",
+                        "Description": "For traffic from intrnate http"
+                    },
+                    {
+                        "FromPort": 3306,
+                        "IpProtocol": "tcp",
+                        "ToPort": 3306,
+                        "CidrIp": "0.0.0.0/0",
+                        "Description": "For traffic from intrnate DB"
+                    },
+                    {
+                        "FromPort": 22,
+                        "IpProtocol": "tcp",
+                        "ToPort": 22,
+                        "CidrIp": "0.0.0.0/0",
+                        "Description": "For traffic from intrnate ssh"
+                    }
+                ],
+                "VpcId": {
+                    "Ref": "CloudFormationMyvpc"
+                }
+            }
+        },
+        "EC2frontendCloudFormation": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "AvailabilityZone": "us-east-2a",
+                "BlockDeviceMappings": [
+                    {
+                        "DeviceName": "/dev/xvda",
+                        "Ebs": {
+                            "DeleteOnTermination": "true",
+                            "VolumeSize": 20,
+                            "VolumeType": "gp2"
+                        }
+                    }
+                ],
+                "ImageId": "ami-0e9f795915dafc0be",
+                "InstanceType": "t2.micro",
+                "KeyName": "Test123",
+                "NetworkInterfaces": [
+                    {
+                        "Description": "Frontend network interface",
+                        "DeviceIndex": "0",
+                        "GroupSet": [
+                            {
+                                "Ref": "PublicSecuritygroup01"
+                            }
+                        ],
+                        "SubnetId": {
+                            "Ref": "publicSubnet01"
+                        }
+                    }
+                ],
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "EC2frontendCloudFormation"
+                    }
+                ]
+            }
+        },
+        "EC2BackendCloudFormation": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "AvailabilityZone": "us-east-2a",
+                "BlockDeviceMappings": [
+                    {
+                        "DeviceName": "/dev/xvda",
+                        "Ebs": {
+                            "DeleteOnTermination": "true",
+                            "VolumeSize": 20,
+                            "VolumeType": "gp2"
+                        }
+                    }
+                ],
+                "ImageId": "ami-0d47c0b0fe42d6b57",
+                "InstanceType": "t2.micro",
+                "KeyName": "Test123",
+                "NetworkInterfaces": [
+                    {
+                        "Description": "Backend network interface",
+                        "DeviceIndex": "0",
+                        "GroupSet": [
+                            {
+                                "Ref": "PrivateSecuritygroup01"
+                            }
+                        ],
+                        "SubnetId": {
+                            "Ref": "privateSubnet01"
+                        }
+                    }
+                ],
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "EC2BackendCloudFormation"
+                    }
+                ]
+            }
+        },
+        "MyNATGateway": {
+            "Type": "AWS::EC2::NatGateway",
+            "Properties": {
+                "AllocationId": {
+                    "Fn::GetAtt": [
+                        "EIP",
+                        "AllocationId"
+                    ]
+                },
+                "SubnetId": {
+                    "Ref": "publicSubnet01"
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "MyNATGateway"
+                    }
+                ]
+            }
+        },
+        "EIP": {
+            "Type": "AWS::EC2::EIP",
+            "Properties": {
+                "Domain": "vpc"
+            }
+        },
+        "Route": {
+            "Type": "AWS::EC2::Route",
+            "Properties": {
+                "RouteTableId": "rtb-0f53f8d7714fc7cfb",
+                "DestinationCidrBlock": "0.0.0.0/0",
+                "NatGatewayId": {
+                    "Ref": "MyNATGateway"
+                }
+            }
+        },
+        "myDBSubnetGroupCloud": {
+        "Type": "AWS::RDS::DBSubnetGroup",
+        "Properties": {
+            "DBSubnetGroupDescription": "RDS Subnets",
+            "SubnetIds": [
+                {
+                    "Ref": "privateSubnet02"
+                },
+                {
+                    "Ref": "privateSubnet01"
+                }
+            ],
+            "Tags": [
+                {
+                    "Key": "Name",
+                    "Value": "myDBSubnetGroupCloud"
+                }
+            ]
+        }
+    },
+        "mydb1": {
+        "Type": "AWS::RDS::DBInstance",
+        "Properties": {
+            "AllocatedStorage": 20,
+            "AvailabilityZone": "us-east-2a",
+            "DBInstanceClass": "db.t2.micro",
+            "DBName": "mydb123",
+            "DBSubnetGroupName": {
+                "Ref": "myDBSubnetGroupCloud"
+            },
+            "Engine": "MySQL",
+            "MasterUsername": "admin",
+            "MasterUserPassword": "db123456789",
+            "PubliclyAccessible": false,
+            "StorageType": "gp2",
+            "VPCSecurityGroups": [
+                {
+                    "Ref": "PrivateSecuritygroup01"
+                }
+            ]
+        },
+        "DependsOn": [
+            "myDBSubnetGroupCloud"
+        ]
+    },
+    "myLoadBalancerForCloudTemplate": {
+            "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+            "Properties": {
+                "Scheme" : "internal",
+                "Name":"myLoadBalancerForCloudTemplate",
+                "SecurityGroups" : [ {
+                    "Ref":"PrivateSecuritygroup01"
+                }],
+                "Subnets": [
+                    {
+                        "Ref": "privateSubnet01"
+                    },
+                    {
+                        "Ref": "privateSubnet02"
+                    }
+                ]
+            },
+            "Metadata": {
+                "AWS::CloudFormation::Designer": {
+                    "id": "10ca4263-6052-4d25-8c74-c55a92ac00fe"
+                }
+            }
+        },
+        "myTargetGroupForCloudTemplate": {
+            "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+            "Properties": {
+                "Name": "myTargetGroupForCloudTemplate",
+                "Port": 8000,
+                "Protocol": "HTTP",
+                "VpcId": {
+                    "Ref": "CloudFormationMyvpc"
+                }
+            },
+            "Metadata": {
+                "AWS::CloudFormation::Designer": {
+                    "id": "48c93076-f07e-4c60-953a-e0b1c101b258"
+                }
+            },
+            "DependsOn": [
+                "myLoadBalancerForCloudTemplate"
+            ]
+        },
+        "myLoadBalancerListenerForCloud": {
+            "Type": "AWS::ElasticLoadBalancingV2::Listener",
+            "Properties": {
+                "DefaultActions": [
+                    {
+                        "TargetGroupArn": {
+                            "Ref": "myTargetGroupForCloudTemplate"
+                        },
+                        "Type": "forward"
+                    }
+                ],
+                "LoadBalancerArn": {
+                    "Ref": "myLoadBalancerForCloudTemplate"
+                },
+                "Port": 80,
+                "Protocol": "HTTP"
+            },
+            "Metadata": {
+                "AWS::CloudFormation::Designer": {
+                    "id": "022fc2e3-0b97-4e1f-8384-aa7758c413c0"
+                }
+            }
+        },
+        "mySimplelaunchConfig": {
+            "Type": "AWS::AutoScaling::LaunchConfiguration",
+            "Properties": {
+                "ImageId": "ami-0147fcf4384aa3154",
+                "SecurityGroups": [
+                    {
+                        "Ref": "PrivateSecuritygroup01"
+                    }
+                ],
+                "InstanceType": "t2.micro"
+            },
+            "Metadata": {
+                "AWS::CloudFormation::Designer": {
+                    "id": "f64f034f-3d65-4696-9f16-12cf6bee90ae"
+                }
+            }
+        },
+        "myAutoscalinggroup": {
+            "Type": "AWS::AutoScaling::AutoScalingGroup",
+            "Properties": {
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Resources": {
+        "CloudFormationMyvpc": {
+            "Type": "AWS::EC2::VPC",
+            "Properties": {
+                "EnableDnsSupport": "true",
+                "EnableDnsHostnames": "true",
+                "CidrBlock": "10.1.0.0/16",
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "CloudFormationMyvpc"
+                    }
+                ]
+            }
+        },
+        "publicSubnet01": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "AvailabilityZone": "us-east-2a",
+                "CidrBlock": "10.1.128.0/17",
+                "MapPublicIpOnLaunch": "true",
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "publicSubnet01"
+                    }
+                ],
+                "VpcId": {
+                    "Ref": "CloudFormationMyvpc"
+                }
+            }
+        },
+        "publicSubnetForCloud02": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "AvailabilityZone": "us-east-2a",
+                "CidrBlock": "10.1.64.0/18",
+                "MapPublicIpOnLaunch": "true",
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "publicSubnetForCloud02"
+                    }
+                ],
+                "VpcId": {
+                    "Ref": "CloudFormationMyvpc"
+                }
+            }
+        },
+        "privateSubnet01": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "AvailabilityZone": "us-east-2a",
+                "CidrBlock": "10.1.32.0/19",
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "PrivateSubnet01"
+                    }
+                ],
+                "VpcId": {
+                    "Ref": "CloudFormationMyvpc"
+                }
+            }
+        },
+        "privateSubnet02": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "AvailabilityZone": "us-east-2c",
+                "CidrBlock": "10.1.16.0/20",
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "PrivateSubnet02"
+                    }
+                ],
+                "VpcId": {
+                    "Ref": "CloudFormationMyvpc"
+                }
+            }
+        },
+        "myInternetGateway": {
+            "Type": "AWS::EC2::InternetGateway",
+            "Properties": {
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "myInternetGateway"
+                    }
+                ]
+            }
+        },
+        "myPublicRouteTable": {
+            "Type": "AWS::EC2::RouteTable",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "CloudFormationMyvpc"
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "myPublicRouteTable"
+                    }
+                ]
+            }
+        },
+        "myPublicSubnetRouteTableAssociation": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "SubnetId": {
+                    "Ref": "publicSubnet01"
+                },
+                "RouteTableId": {
+                    "Ref": "myPublicRouteTable"
+                }
+            }
+        },
+        "myPublicSubnetRouteTableAssociation02": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "SubnetId": {
+                    "Ref": "publicSubnetForCloud02"
+                },
+                "RouteTableId": {
+                    "Ref": "myPublicRouteTable"
+                }
+            }
+        },
+        "GatewayToInternet": {
+            "Type": "AWS::EC2::VPCGatewayAttachment",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "CloudFormationMyvpc"
+                },
+                "InternetGatewayId": {
+                    "Ref": "myInternetGateway"
+                }
+            }
+        },
+        "myRoute": {
+            "Type": "AWS::EC2::Route",
+            "DependsOn": "GatewayToInternet",
+            "Properties": {
+                "RouteTableId": {
+                    "Ref": "myPublicRouteTable"
+                },
+                "DestinationCidrBlock": "0.0.0.0/0",
+                "GatewayId": {
+                    "Ref": "myInternetGateway"
+                }
+            }
+        },
+        "PublicSecuritygroup01": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "Public security Group",
+                "GroupName": "PublicsecurityGroup",
+                "SecurityGroupIngress": [
+                    {
+                        "FromPort": 80,
+                        "IpProtocol": "tcp",
+                        "ToPort": 80,
+                        "CidrIp": "0.0.0.0/0",
+                        "Description": "For traffic from intrnate http"
+                    },
+                    {
+                        "FromPort": 8000,
+                        "IpProtocol": "tcp",
+                        "ToPort": 8000,
+                        "CidrIp": "0.0.0.0/0",
+                        "Description": "For traffic from intrnate http"
+                    },
+                    {
+                        "FromPort": 22,
+                        "IpProtocol": "tcp",
+                        "ToPort": 22,
+                        "CidrIp": "0.0.0.0/0",
+                        "Description": "For traffic from intrnate ssh"
+                    }
+                ],
+                "VpcId": {
+                    "Ref": "CloudFormationMyvpc"
+                }
+            }
+        },
+        "PrivateSecuritygroup01": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "Privatec security Group",
+                "GroupName": "PrivatesecurityGroup",
+                "SecurityGroupIngress": [
+                    {
+                        "FromPort": 80,
+                        "IpProtocol": "tcp",
+                        "ToPort": 80,
+                        "CidrIp": "0.0.0.0/0",
+                        "Description": "For traffic from intrnate http"
+                    },
+                    {
+                        "FromPort": 8000,
+                        "IpProtocol": "tcp",
+                        "ToPort": 8000,
+                        "CidrIp": "0.0.0.0/0",
+                        "Description": "For traffic from intrnate http"
+                    },
+                    {
+                        "FromPort": 3306,
+                        "IpProtocol": "tcp",
+                        "ToPort": 3306,
+                        "CidrIp": "0.0.0.0/0",
+                        "Description": "For traffic from intrnate DB"
+                    },
+                    {
+                        "FromPort": 22,
+                        "IpProtocol": "tcp",
+                        "ToPort": 22,
+                        "CidrIp": "0.0.0.0/0",
+                        "Description": "For traffic from intrnate ssh"
+                    }
+                ],
+                "VpcId": {
+                    "Ref": "CloudFormationMyvpc"
+                }
+            }
+        },
+        "EC2frontendCloudFormation": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "AvailabilityZone": "us-east-2a",
+                "BlockDeviceMappings": [
+                    {
+                        "DeviceName": "/dev/xvda",
+                        "Ebs": {
+                            "DeleteOnTermination": "true",
+                            "VolumeSize": 20,
+                            "VolumeType": "gp2"
+                        }
+                    }
+                ],
+                "ImageId": "ami-0e9f795915dafc0be",
+                "InstanceType": "t2.micro",
+                "KeyName": "Test123",
+                "NetworkInterfaces": [
+                    {
+                        "Description": "Frontend network interface",
+                        "DeviceIndex": "0",
+                        "GroupSet": [
+                            {
+                                "Ref": "PublicSecuritygroup01"
+                            }
+                        ],
+                        "SubnetId": {
+                            "Ref": "publicSubnet01"
+                        }
+                    }
+                ],
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "EC2frontendCloudFormation"
+                    }
+                ]
+            }
+        },
+        "EC2BackendCloudFormation": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "AvailabilityZone": "us-east-2a",
+                "BlockDeviceMappings": [
+                    {
+                        "DeviceName": "/dev/xvda",
+                        "Ebs": {
+                            "DeleteOnTermination": "true",
+                            "VolumeSize": 20,
+                            "VolumeType": "gp2"
+                        }
+                    }
+                ],
+                "ImageId": "ami-0d47c0b0fe42d6b57",
+                "InstanceType": "t2.micro",
+                "KeyName": "Test123",
+                "NetworkInterfaces": [
+                    {
+                        "Description": "Backend network interface",
+                        "DeviceIndex": "0",
+                        "GroupSet": [
+                            {
+                                "Ref": "PrivateSecuritygroup01"
+                            }
+                        ],
+                        "SubnetId": {
+                            "Ref": "privateSubnet01"
+                        }
+                    }
+                ],
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "EC2BackendCloudFormation"
+                    }
+                ]
+            }
+        },
+        "MyNATGateway": {
+            "Type": "AWS::EC2::NatGateway",
+            "Properties": {
+                "AllocationId": {
+                    "Fn::GetAtt": [
+                        "EIP",
+                        "AllocationId"
+                    ]
+                },
+                "SubnetId": {
+                    "Ref": "publicSubnet01"
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "MyNATGateway"
+                    }
+                ]
+            }
+        },
+        "EIP": {
+            "Type": "AWS::EC2::EIP",
+            "Properties": {
+                "Domain": "vpc"
+            }
+        },
+        "Route": {
+            "Type": "AWS::EC2::Route",
+            "Properties": {
+                "RouteTableId": "rtb-0f53f8d7714fc7cfb",
+                "DestinationCidrBlock": "0.0.0.0/0",
+                "NatGatewayId": {
+                    "Ref": "MyNATGateway"
+                }
+            }
+        },
+        "myDBSubnetGroupCloud": {
+        "Type": "AWS::RDS::DBSubnetGroup",
+        "Properties": {
+            "DBSubnetGroupDescription": "RDS Subnets",
+            "SubnetIds": [
+                {
+                    "Ref": "privateSubnet02"
+                },
+                {
+                    "Ref": "privateSubnet01"
+                }
+            ],
+            "Tags": [
+                {
+                    "Key": "Name",
+                    "Value": "myDBSubnetGroupCloud"
+                }
+            ]
+        }
+    },
+        "mydb1": {
+        "Type": "AWS::RDS::DBInstance",
+        "Properties": {
+            "AllocatedStorage": 20,
+            "AvailabilityZone": "us-east-2a",
+            "DBInstanceClass": "db.t2.micro",
+            "DBName": "mydb123",
+            "DBSubnetGroupName": {
+                "Ref": "myDBSubnetGroupCloud"
+            },
+            "Engine": "MySQL",
+            "MasterUsername": "admin",
+            "MasterUserPassword": "db123456789",
+            "PubliclyAccessible": false,
+            "StorageType": "gp2",
+            "VPCSecurityGroups": [
+                {
+                    "Ref": "PrivateSecuritygroup01"
+                }
+            ]
+        },
+        "DependsOn": [
+            "myDBSubnetGroupCloud"
+        ]
+    },
+    "myLoadBalancerForCloudTemplate": {
+            "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+            "Properties": {
+                "Scheme" : "internal",
+                "Name":"myLoadBalancerForCloudTemplate",
+                "SecurityGroups" : [ {
+                    "Ref":"PrivateSecuritygroup01"
+                }],
+                "Subnets": [
+                    {
+                        "Ref": "privateSubnet01"
+                    },
+                    {
+                        "Ref": "privateSubnet02"
+                    }
+                ]
+            },
+            "Metadata": {
+                "AWS::CloudFormation::Designer": {
+                    "id": "10ca4263-6052-4d25-8c74-c55a92ac00fe"
+                }
+            }
+        },
+        "myTargetGroupForCloudTemplate": {
+            "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+            "Properties": {
+                "Name": "myTargetGroupForCloudTemplate",
+                "Port": 8000,
+                "Protocol": "HTTP",
+                "VpcId": {
+                    "Ref": "CloudFormationMyvpc"
+                }
+            },
+            "Metadata": {
+                "AWS::CloudFormation::Designer": {
+                    "id": "48c93076-f07e-4c60-953a-e0b1c101b258"
+                }
+            },
+            "DependsOn": [
+                "myLoadBalancerForCloudTemplate"
+            ]
+        },
+        "myLoadBalancerListenerForCloud": {
+            "Type": "AWS::ElasticLoadBalancingV2::Listener",
+            "Properties": {
+                "DefaultActions": [
+                    {
+                        "TargetGroupArn": {
+                            "Ref": "myTargetGroupForCloudTemplate"
+                        },
+                        "Type": "forward"
+                    }
+                ],
+                "LoadBalancerArn": {
+                    "Ref": "myLoadBalancerForCloudTemplate"
+                },
+                "Port": 80,
+                "Protocol": "HTTP"
+            },
+            "Metadata": {
+                "AWS::CloudFormation::Designer": {
+                    "id": "022fc2e3-0b97-4e1f-8384-aa7758c413c0"
+                }
+            }
+        },
+        "mySimplelaunchConfig": {
+            "Type": "AWS::AutoScaling::LaunchConfiguration",
+            "Properties": {
+                "ImageId": "ami-0147fcf4384aa3154",
+                "SecurityGroups": [
+                    {
+                        "Ref": "PrivateSecuritygroup01"
+                    }
+                ],
+                "InstanceType": "t2.micro"
+            },
+            "Metadata": {
+                "AWS::CloudFormation::Designer": {
+                    "id": "f64f034f-3d65-4696-9f16-12cf6bee90ae"
+                }
+            }
+        },
+        "myAutoscalinggroup": {
+            "Type": "AWS::AutoScaling::AutoScalingGroup",
+            "Properties": {
+                "VPCZoneIdentifier": [
+                    {
+                        "Ref": "privateSubnet01"
+                    }
+                ],
+                "LaunchConfigurationName": {
+                    "Ref": "mySimplelaunchConfig"
+                },
+                "MinSize": "1",
+                "MaxSize": "3",
+                "HealthCheckGracePeriod": 300,
+                "MaxInstanceLifetime": 2592000,
+                "TargetGroupARNs": [
+                    {
+                        "Ref": "myTargetGroupForCloudTemplate"
+                    }
+                ],
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "PropagateAtLaunch": "true",
+                        "Value": "EC2AutoScaleForCloud"
+                    }
+                ]
+            },
+            "Metadata": {
+                "AWS::CloudFormation::Designer": {
+                    "id": "fc45bbaf-8ced-4445-a615-62d6751b3345"
+                }
+            },
+            "DependsOn": [
+                "myLoadBalancerForCloudTemplate",
+                "mySimplelaunchConfig"
+            ]
+        }
+    }
+}
+       
+       
+
+
